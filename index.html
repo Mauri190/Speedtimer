@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speedtimer</title>
+    <style>
+        :root {
+            --bg-color: #f5f5f5;
+            --container-bg: white;
+            --text-color: #333;
+            --scramble-bg: #f0f0f0;
+            --stat-bg: #e9e9e9;
+            --button-bg: #2196F3;
+            --button-hover: #0b7dda;
+            --border-color: #ddd;
+            --timer-ready: #4CAF50;
+            --timer-running: #F44336;
+            --delete-color: #F44336;
+            --category-bg: #e3f2fd;
+            --category-active: #bbdefb;
+        }
+
+        .dark-mode {
+            --bg-color: #121212;
+            --container-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --scramble-bg: #2d2d2d;
+            --stat-bg: #2d2d2d;
+            --button-bg: #1976D2;
+            --button-hover: #1565C0;
+            --border-color: #444;
+            --timer-ready: #81C784;
+            --timer-running: #E57373;
+            --delete-color: #E57373;
+            --category-bg: #0d47a1;
+            --category-active: #1565c0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-color);
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .main-container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            gap: 20px;
+        }
+        
+        .categories {
+            width: 200px;
+            background-color: var(--container-bg);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: background-color 0.3s;
+        }
+        
+        .categories h3 {
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+        }
+        
+        .category {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: var(--category-bg);
+            transition: background-color 0.3s;
+        }
+        
+        .category:hover {
+            background-color: var(--button-hover);
+            color: white;
+        }
+        
+        .category.active {
+            background-color: var(--category-active);
+            font-weight: bold;
+        }
+        
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            background-color: var(--container-bg);
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        
+        .main-content {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .timer {
+            font-size: 72px;
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+            color: var(--text-color);
+            text-align: center;
+        }
+        
+        .scramble {
+            font-size: 18px;
+            margin: 20px 0;
+            padding: 12px;
+            background-color: var(--scramble-bg);
+            border-radius: 8px;
+            word-break: break-word;
+            text-align: center;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        
+        /* Estilos para la visualización del cubo 2D */
+        .cube-net {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+        }
+        
+        .cube-row {
+            display: flex;
+            justify-content: center;
+        }
+        
+        .face {
+            margin: 3px;
+            display: grid;
+            grid-template-columns: repeat(3, 30px);
+            grid-template-rows: repeat(3, 30px);
+            gap: 1px;
+            background-color: #333;
+            padding: 2px;
+            border-radius: 3px;
+        }
+        
+        .sticker {
+            width: 30px;
+            height: 30px;
+            border-radius: 2px;
+        }
+        
+        /* Colores del cubo de Rubik */
+        .white { background-color: #FFFFFF; }
+        .yellow { background-color: #FFFF00; }
+        .red { background-color: #FF0000; }
+        .orange { background-color: #FFA500; }
+        .blue { background-color: #0000FF; }
+        .green { background-color: #00FF00; }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            width: 100%;
+        }
+        
+        .stat {
+            background-color: var(--stat-bg);
+            padding: 12px;
+            border-radius: 8px;
+            min-width: 80px;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+        
+        .stat-value {
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .times {
+            margin-top: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+            width: 280px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: var(--container-bg);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: background-color 0.3s;
+        }
+        
+        .time {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: border-color 0.3s;
+        }
+        
+        .time-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .time-number {
+            font-size: 12px;
+            color: var(--text-color);
+            opacity: 0.7;
+        }
+        
+        .delete-time {
+            background: none;
+            border: none;
+            color: var(--delete-color);
+            cursor: pointer;
+            font-weight: bold;
+            padding: 2px 8px;
+            font-size: 16px;
+            transition: color 0.3s;
+        }
+        
+        .delete-time:hover {
+            background-color: rgba(244, 67, 54, 0.1);
+            border-radius: 50%;
+        }
+        
+        .ready {
+            color: var(--timer-ready);
+        }
+        
+        .running {
+            color: var(--timer-running);
+        }
+        
+        button {
+            background-color: var(--button-bg);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            margin: 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: var(--button-hover);
+        }
+        
+        .controls {
+            margin: 15px 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--button-bg);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 100;
+            transition: background-color 0.3s;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--button-hover);
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .times h3 {
+            margin-top: 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" id="themeToggle">☀️</button>
+
+    <div class="main-container">
+        <div class="categories">
+            <h3>Categorías</h3>
+            <div class="category active" data-cube="3x3">3x3x3</div>
+            <div class="category" data-cube="2x2">2x2x2</div>
+            <div class="category" data-cube="4x4">4x4x4</div>
+            <div class="category" data-cube="5x5">5x5x5</div>
+        </div>
+
+        <div class="content-area">
+            <div class="container">
+                <div class="main-content">
+                    <h1>Speedtimer</h1>
+                    
+                    <div class="timer" id="timer">0.000</div>
+                    
+                    <div class="scramble" id="scramble"></div>
+                    
+                    <!-- Visualización 2D del cubo -->
+                    <div class="cube-net">
+                        <!-- Fila superior (solo cara U) -->
+                        <div class="cube-row">
+                            <div class="face" id="faceU"></div>
+                        </div>
+                        
+                        <!-- Fila central (caras L, F, R, B) -->
+                        <div class="cube-row">
+                            <div class="face" id="faceL"></div>
+                            <div class="face" id="faceF"></div>
+                            <div class="face" id="faceR"></div>
+                            <div class="face" id="faceB"></div>
+                        </div>
+                        
+                        <!-- Fila inferior (solo cara D) -->
+                        <div class="cube-row">
+                            <div class="face" id="faceD"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="stats">
+                        <div class="stat">
+                            <div>Mejor</div>
+                            <div class="stat-value" id="best">--</div>
+                        </div>
+                        <div class="stat">
+                            <div>AO5</div>
+                            <div class="stat-value" id="ao5">--</div>
+                        </div>
+                        <div class="stat">
+                            <div>AO12</div>
+                            <div class="stat-value" id="ao12">--</div>
+                        </div>
+                    </div>
+                    
+                    <div class="controls">
+                        <button id="newScramble">Nuevo Scramble</button>
+                        <button id="deleteLast">Eliminar último</button>
+                        <button id="reset">Reset</button>
+                    </div>
+                </div>
+                
+                <div class="times" id="times">
+                    <h3>Tiempos</h3>
+                    <!-- Times will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const timer = document.getElementById('timer');
+            const scrambleDisplay = document.getElementById('scramble');
+            const bestDisplay = document.getElementById('best');
+            const ao5Display = document.getElementById('ao5');
+            const ao12Display = document.getElementById('ao12');
+            const timesList = document.getElementById('times');
+            const newScrambleBtn = document.getElementById('newScramble');
+            const deleteLastBtn = document.getElementById('deleteLast');
+            const resetBtn = document.getElementById('reset');
+            const themeToggle = document.getElementById('themeToggle');
+            const categories = document.querySelectorAll('.category');
+            
+            // Elementos de las caras del cubo
+            const faceU = document.getElementById('faceU');
+            const faceL = document.getElementById('faceL');
+            const faceF = document.getElementById('faceF');
+            const faceR = document.getElementById('faceR');
+            const faceB = document.getElementById('faceB');
+            const faceD = document.getElementById('faceD');
+            
+            let startTime;
+            let timerInterval;
+            let isRunning = false;
+            let isReady = false;
+            let times = JSON.parse(localStorage.getItem('cubeTimes')) || [];
+            let currentScramble = '';
+            let darkMode = localStorage.getItem('darkMode') === 'true';
+            let currentCategory = '3x3'; // Por defecto 3x3
+            
+            // Inicializar tema
+            if (darkMode) {
+                document.body.classList.add('dark-mode');
+                themeToggle.textContent = '🌙';
+            } else {
+                themeToggle.textContent = '☀️';
+            }
+            
+            // Estado del cubo (colores iniciales)
+            let cubeState = {
+                U: Array(9).fill('white'),
+                L: Array(9).fill('orange'),
+                F: Array(9).fill('green'),
+                R: Array(9).fill('red'),
+                B: Array(9).fill('blue'),
+                D: Array(9).fill('yellow')
+            };
+            
+            // Inicializar
+            generateScramble();
+            updateTimes();
+            updateStats();
+            
+            // Generar scramble según la categoría
+            function generateScramble() {
+                let scramble = '';
+                
+                switch(currentCategory) {
+                    case '2x2':
+                        scramble = generate2x2Scramble();
+                        break;
+                    case '4x4':
+                        scramble = generate4x4Scramble();
+                        break;
+                    case '5x5':
+                        scramble = generate5x5Scramble();
+                        break;
+                    default: // 3x3
+                        scramble = generate3x3Scramble();
+                }
+                
+                currentScramble = scramble;
+                scrambleDisplay.textContent = currentScramble;
+                
+                // Solo aplicar scramble al cubo si es 3x3
+                if (currentCategory === '3x3') {
+                    resetCubeState();
+                    applyScrambleToCube(currentScramble);
+                    renderCubeFaces();
+                } else {
+                    // Ocultar visualización del cubo para otras categorías
+                    document.querySelector('.cube-net').style.display = 'none';
+                }
+                
+                return currentScramble;
+            }
+            
+            // Generar scramble para 2x2
+            function generate2x2Scramble() {
+                const moves = ["U", "R", "F"];
+                const modifiers = ["", "'", "2"];
+                let scramble = [];
+                let lastMove = "";
+                
+                for (let i = 0; i < 10; i++) {
+                    let move;
+                    do {
+                        move = moves[Math.floor(Math.random() * moves.length)];
+                    } while (move[0] === lastMove[0]);
+                    
+                    const modifier = modifiers[Math.floor(Math.random() * modifiers.length)];
+                    scramble.push(move + modifier);
+                    lastMove = move;
+                }
+                
+                return scramble.join(' ');
+            }
+            
+            // Generar scramble para 3x3
+            function generate3x3Scramble() {
+                const moves = ["U", "D", "F", "B", "R", "L"];
+                const modifiers = ["", "'", "2"];
+                let scramble = [];
+                let lastMove = "";
+                
+                for (let i = 0; i < 20; i++) {
+                    let move;
+                    do {
+                        move = moves[Math.floor(Math.random() * moves.length)];
+                    } while (move[0] === lastMove[0]);
+                    
+                    const modifier = modifiers[Math.floor(Math.random() * modifiers.length)];
+                    scramble.push(move + modifier);
+                    lastMove = move;
+                }
+                
+                return scramble.join(' ');
+            }
+            
+            // Generar scramble para 4x4
+            function generate4x4Scramble() {
+                const moves = ["U", "D", "F", "B", "R", "L"];
+                const modifiers = ["", "'", "2"];
+                const wideMoves = ["Uw", "Dw", "Fw", "Bw", "Rw", "Lw"];
+                let scramble = [];
+                let lastMove = "";
+                
+                for (let i = 0; i < 25; i++) {
+                    let move;
+                    do {
+                        // 50% de probabilidad de movimiento wide
+                        if (Math.random() > 0.5) {
+                            move = wideMoves[Math.floor(Math.random() * wideMoves.length)];
+                        } else {
+                            move = moves[Math.floor(Math.random() * moves.length)];
+                        }
+                    } while (move[0] === lastMove[0]);
+                    
+                    const modifier = modifiers[Math.floor(Math.random() * modifiers.length)];
+                    scramble.push(move + modifier);
+                    lastMove = move;
+                }
+                
+                return scramble.join(' ');
+            }
+            
+            // Generar scramble para 5x5
+            function generate5x5Scramble() {
+                const moves = ["U", "D", "F", "B", "R", "L"];
+                const modifiers = ["", "'", "2"];
+                const wideMoves = ["Uw", "Dw", "Fw", "Bw", "Rw", "Lw"];
+                let scramble = [];
+                let lastMove = "";
+                
+                for (let i = 0; i < 30; i++) {
+                    let move;
+                    do {
+                        // 50% de probabilidad de movimiento wide
+                        if (Math.random() > 0.5) {
+                            move = wideMoves[Math.floor(Math.random() * wideMoves.length)];
+                        } else {
+                            move = moves[Math.floor(Math.random() * moves.length)];
+                        }
+                    } while (move[0] === lastMove[0]);
+                    
+                    const modifier = modifiers[Math.floor(Math.random() * modifiers.length)];
+                    scramble.push(move + modifier);
+                    lastMove = move;
+                }
+                
+                return scramble.join(' ');
+            }
+            
+            // Resetear el cubo a su estado resuelto
+            function resetCubeState() {
+                cubeState = {
+                    U: Array(9).fill('white'),
+                    L: Array(9).fill('orange'),
+                    F: Array(9).fill('green'),
+                    R: Array(9).fill('red'),
+                    B: Array(9).fill('blue'),
+                    D: Array(9).fill('yellow')
+                };
+            }
+            
+            // Aplicar un scramble al estado del cubo
+            function applyScrambleToCube(scramble) {
+                const moves = scramble.split(' ');
+                
+                moves.forEach(move => {
+                    if (move.includes("2")) {
+                        rotateFace(move[0]);
+                        rotateFace(move[0]);
+                    } else if (move.includes("'")) {
+                        rotateFace(move[0], true);
+                    } else {
+                        rotateFace(move[0]);
+                    }
+                });
+            }
+            
+            // Rotar una cara del cubo (y las caras adyacentes)
+            function rotateFace(face, inverse = false) {
+                const f = face.toUpperCase();
+                const state = cubeState;
+                
+                // Rotar la cara principal
+                const rotated = inverse ? [6, 3, 0, 7, 4, 1, 8, 5, 2] : [2, 5, 8, 1, 4, 7, 0, 3, 6];
+                const newFace = rotated.map(i => state[f][i]);
+                state[f] = newFace;
+                
+                // Rotar las caras adyacentes
+                if (f === 'U') {
+                    const temp = state.F.slice(0, 3);
+                    if (inverse) {
+                        state.F[0] = state.L[0]; state.F[1] = state.L[1]; state.F[2] = state.L[2];
+                        state.L[0] = state.B[0]; state.L[1] = state.B[1]; state.L[2] = state.B[2];
+                        state.B[0] = state.R[0]; state.B[1] = state.R[1]; state.B[2] = state.R[2];
+                        state.R[0] = temp[0]; state.R[1] = temp[1]; state.R[2] = temp[2];
+                    } else {
+                        state.F[0] = state.R[0]; state.F[1] = state.R[1]; state.F[2] = state.R[2];
+                        state.R[0] = state.B[0]; state.R[1] = state.B[1]; state.R[2] = state.B[2];
+                        state.B[0] = state.L[0]; state.B[1] = state.L[1]; state.B[2] = state.L[2];
+                        state.L[0] = temp[0]; state.L[1] = temp[1]; state.L[2] = temp[2];
+                    }
+                } 
+                else if (f === 'D') {
+                    const temp = state.F.slice(6, 9);
+                    if (inverse) {
+                        state.F[6] = state.R[6]; state.F[7] = state.R[7]; state.F[8] = state.R[8];
+                        state.R[6] = state.B[6]; state.R[7] = state.B[7]; state.R[8] = state.B[8];
+                        state.B[6] = state.L[6]; state.B[7] = state.L[7]; state.B[8] = state.L[8];
+                        state.L[6] = temp[0]; state.L[7] = temp[1]; state.L[8] = temp[2];
+                    } else {
+                        state.F[6] = state.L[6]; state.F[7] = state.L[7]; state.F[8] = state.L[8];
+                        state.L[6] = state.B[6]; state.L[7] = state.B[7]; state.L[8] = state.B[8];
+                        state.B[6] = state.R[6]; state.B[7] = state.R[7]; state.B[8] = state.R[8];
+                        state.R[6] = temp[0]; state.R[7] = temp[1]; state.R[8] = temp[2];
+                    }
+                }
+                else if (f === 'F') {
+                    const temp = state.U.slice(6, 9);
+                    if (inverse) {
+                        state.U[6] = state.R[0]; state.U[7] = state.R[3]; state.U[8] = state.R[6];
+                        state.R[0] = state.D[2]; state.R[3] = state.D[1]; state.R[6] = state.D[0];
+                        state.D[0] = state.L[2]; state.D[1] = state.L[5]; state.D[2] = state.L[8];
+                        state.L[2] = temp[2]; state.L[5] = temp[1]; state.L[8] = temp[0];
+                    } else {
+                        state.U[6] = state.L[8]; state.U[7] = state.L[5]; state.U[8] = state.L[2];
+                        state.L[2] = state.D[0]; state.L[5] = state.D[1]; state.L[8] = state.D[2];
+                        state.D[0] = state.R[6]; state.D[1] = state.R[3]; state.D[2] = state.R[0];
+                        state.R[0] = temp[0]; state.R[3] = temp[1]; state.R[6] = temp[2];
+                    }
+                }
+                else if (f === 'B') {
+                    const temp = state.U.slice(0, 3);
+                    if (inverse) {
+                        state.U[0] = state.L[6]; state.U[1] = state.L[3]; state.U[2] = state.L[0];
+                        state.L[0] = state.D[8]; state.L[3] = state.D[7]; state.L[6] = state.D[6];
+                        state.D[6] = state.R[2]; state.D[7] = state.R[5]; state.D[8] = state.R[8];
+                        state.R[2] = temp[2]; state.R[5] = temp[1]; state.R[8] = temp[0];
+                    } else {
+                        state.U[0] = state.R[2]; state.U[1] = state.R[5]; state.U[2] = state.R[8];
+                        state.R[2] = state.D[6]; state.R[5] = state.D[7]; state.R[8] = state.D[8];
+                        state.D[6] = state.L[0]; state.D[7] = state.L[3]; state.D[8] = state.L[6];
+                        state.L[0] = temp[2]; state.L[3] = temp[1]; state.L[6] = temp[0];
+                    }
+                }
+                else if (f === 'L') {
+                    const temp = [state.U[0], state.U[3], state.U[6]];
+                    if (inverse) {
+                        state.U[0] = state.F[0]; state.U[3] = state.F[3]; state.U[6] = state.F[6];
+                        state.F[0] = state.D[0]; state.F[3] = state.D[3]; state.F[6] = state.D[6];
+                        state.D[0] = state.B[8]; state.D[3] = state.B[5]; state.D[6] = state.B[2];
+                        state.B[2] = temp[0]; state.B[5] = temp[1]; state.B[8] = temp[2];
+                    } else {
+                        state.U[0] = state.B[8]; state.U[3] = state.B[5]; state.U[6] = state.B[2];
+                        state.B[2] = state.D[6]; state.B[5] = state.D[3]; state.B[8] = state.D[0];
+                        state.D[0] = state.F[0]; state.D[3] = state.F[3]; state.D[6] = state.F[6];
+                        state.F[0] = temp[0]; state.F[3] = temp[1]; state.F[6] = temp[2];
+                    }
+                }
+                else if (f === 'R') {
+                    const temp = [state.U[8], state.U[5], state.U[2]];
+                    if (inverse) {
+                        state.U[2] = state.B[6]; state.U[5] = state.B[3]; state.U[8] = state.B[0];
+                        state.B[0] = state.D[8]; state.B[3] = state.D[5]; state.B[6] = state.D[2];
+                        state.D[2] = state.F[2]; state.D[5] = state.F[5]; state.D[8] = state.F[8];
+                        state.F[2] = temp[2]; state.F[5] = temp[1]; state.F[8] = temp[0];
+                    } else {
+                        state.U[2] = state.F[2]; state.U[5] = state.F[5]; state.U[8] = state.F[8];
+                        state.F[2] = state.D[2]; state.F[5] = state.D[5]; state.F[8] = state.D[8];
+                        state.D[2] = state.B[6]; state.D[5] = state.B[3]; state.D[8] = state.B[0];
+                        state.B[0] = temp[0]; state.B[3] = temp[1]; state.B[6] = temp[2];
+                    }
+                }
+            }
+            
+            // Renderizar las caras del cubo
+            function renderCubeFaces() {
+                renderFace('U', faceU);
+                renderFace('L', faceL);
+                renderFace('F', faceF);
+                renderFace('R', faceR);
+                renderFace('B', faceB);
+                renderFace('D', faceD);
+            }
+            
+            function renderFace(face, element) {
+                element.innerHTML = '';
+                const faceData = cubeState[face];
+                
+                faceData.forEach(color => {
+                    const sticker = document.createElement('div');
+                    sticker.className = `sticker ${color}`;
+                    element.appendChild(sticker);
+                });
+            }
+            
+            // Control del timer con espacio
+            document.addEventListener('keydown', function(e) {
+                if (e.code === 'Space' && !isRunning && !isReady) {
+                    e.preventDefault();
+                    timer.className = 'timer ready';
+                    isReady = true;
+                    timer.textContent = '0.000';
+                }
+            });
+            
+            document.addEventListener('keyup', function(e) {
+                if (e.code === 'Space' && isReady && !isRunning) {
+                    e.preventDefault();
+                    startTimer();
+                } else if (isRunning) {
+                    // Detener con cualquier tecla
+                    e.preventDefault();
+                    stopTimer();
+                } else if (e.code === 'Space' && isReady) {
+                    e.preventDefault();
+                    timer.className = 'timer';
+                    isReady = false;
+                }
+            });
+            
+            function startTimer() {
+                isRunning = true;
+                isReady = false;
+                startTime = Date.now();
+                timer.className = 'timer running';
+                
+                timerInterval = setInterval(function() {
+                    const elapsed = Date.now() - startTime;
+                    timer.textContent = formatTime(elapsed);
+                }, 10);
+            }
+            
+            function stopTimer() {
+                if (!isRunning) return;
+                
+                clearInterval(timerInterval);
+                isRunning = false;
+                const endTime = Date.now();
+                const elapsed = endTime - startTime;
+                
+                // Guardar tiempo con la categoría actual
+                times.unshift({
+                    time: elapsed,
+                    scramble: currentScramble,
+                    date: new Date().toISOString(),
+                    category: currentCategory
+                });
+                
+                if (times.length > 100) times = times.slice(0, 100);
+                localStorage.setItem('cubeTimes', JSON.stringify(times));
+                
+                // Actualizar y nuevo scramble
+                updateTimes();
+                updateStats();
+                generateScramble();
+                
+                timer.className = 'timer';
+            }
+            
+            function formatTime(ms) {
+                const date = new Date(ms);
+                const minutes = date.getUTCMinutes();
+                const seconds = date.getUTCSeconds();
+                const milliseconds = date.getUTCMilliseconds();
+                
+                if (minutes > 0) {
+                    return `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0').slice(0, 2)}`;
+                } else {
+                    return `${seconds}.${milliseconds.toString().padStart(3, '0').slice(0, 3)}`;
+                }
+            }
+            
+            function updateTimes() {
+                // Limpiar lista
+                while (timesList.childNodes.length > 1) {
+                    timesList.removeChild(timesList.lastChild);
+                }
+                
+                // Filtrar tiempos por categoría actual
+                const filteredTimes = times.filter(t => t.category === currentCategory);
+                
+                // Añadir tiempos
+                filteredTimes.forEach((solve, index) => {
+                    const timeElement = document.createElement('div');
+                    timeElement.className = 'time';
+                    
+                    const timeInfo = document.createElement('div');
+                    timeInfo.className = 'time-info';
+                    timeInfo.innerHTML = `
+                        <span>${formatTime(solve.time)}</span>
+                        <span class="time-number">#${filteredTimes.length - index} (${solve.category})</span>
+                    `;
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-time';
+                    deleteBtn.innerHTML = '×';
+                    deleteBtn.onclick = () => deleteTime(index);
+                    
+                    timeElement.appendChild(timeInfo);
+                    timeElement.appendChild(deleteBtn);
+                    timesList.appendChild(timeElement);
+                });
+            }
+            
+            function deleteTime(index) {
+                // Encontrar el tiempo en la lista completa
+                const filteredTimes = times.filter(t => t.category === currentCategory);
+                const timeToDelete = filteredTimes[index];
+                
+                // Eliminar de la lista completa
+                const globalIndex = times.findIndex(t => 
+                    t.time === timeToDelete.time && 
+                    t.scramble === timeToDelete.scramble && 
+                    t.date === timeToDelete.date
+                );
+                
+                if (globalIndex !== -1) {
+                    times.splice(globalIndex, 1);
+                    localStorage.setItem('cubeTimes', JSON.stringify(times));
+                    updateTimes();
+                    updateStats();
+                }
+            }
+            
+            function updateStats() {
+                // Filtrar tiempos por categoría actual
+                const filteredTimes = times.filter(t => t.category === currentCategory);
+                
+                if (filteredTimes.length === 0) {
+                    bestDisplay.textContent = '--';
+                    ao5Display.textContent = '--';
+                    ao12Display.textContent = '--';
+                    return;
+                }
+                
+                // Mejor tiempo
+                const best = Math.min(...filteredTimes.map(t => t.time));
+                bestDisplay.textContent = formatTime(best);
+                
+                // AO5
+                if (filteredTimes.length >= 5) {
+                    const last5 = filteredTimes.slice(0, 5).map(t => t.time);
+                    ao5Display.textContent = formatTime(calculateAo(last5));
+                } else {
+                    ao5Display.textContent = '--';
+                }
+                
+                // AO12
+                if (filteredTimes.length >= 12) {
+                    const last12 = filteredTimes.slice(0, 12).map(t => t.time);
+                    ao12Display.textContent = formatTime(calculateAo(last12));
+                } else {
+                    ao12Display.textContent = '--';
+                }
+            }
+            
+            function calculateAo(times) {
+                if (times.length < 3) return times.reduce((a, b) => a + b, 0) / times.length;
+                
+                const sorted = [...times].sort((a, b) => a - b);
+                const toAverage = sorted.slice(1, -1); // Eliminar mejor y peor
+                return toAverage.reduce((a, b) => a + b, 0) / toAverage.length;
+            }
+            
+            // Cambiar categoría
+            categories.forEach(category => {
+                category.addEventListener('click', function() {
+                    // Actualizar categoría activa
+                    categories.forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    currentCategory = this.dataset.cube;
+                    
+                    // Mostrar/ocultar visualización del cubo según la categoría
+                    if (currentCategory === '3x3') {
+                        document.querySelector('.cube-net').style.display = 'flex';
+                    } else {
+                        document.querySelector('.cube-net').style.display = 'none';
+                    }
+                    
+                    // Generar nuevo scramble y actualizar tiempos
+                    generateScramble();
+                    updateTimes();
+                    updateStats();
+                });
+            });
+            
+            // Toggle tema oscuro/claro
+            themeToggle.addEventListener('click', function() {
+                darkMode = !darkMode;
+                localStorage.setItem('darkMode', darkMode);
+                
+                if (darkMode) {
+                    document.body.classList.add('dark-mode');
+                    themeToggle.textContent = '🌙';
+                } else {
+                    document.body.classList.remove('dark-mode');
+                    themeToggle.textContent = '☀️';
+                }
+            });
+            
+            // Eventos de botones
+            newScrambleBtn.addEventListener('click', function() {
+                generateScramble();
+            });
+            
+            deleteLastBtn.addEventListener('click', function() {
+                const filteredTimes = times.filter(t => t.category === currentCategory);
+                if (filteredTimes.length > 0) {
+                    const lastTime = filteredTimes[0];
+                    const index = times.findIndex(t => 
+                        t.time === lastTime.time && 
+                        t.scramble === lastTime.scramble && 
+                        t.date === lastTime.date
+                    );
+                    
+                    if (index !== -1) {
+                        times.splice(index, 1);
+                        localStorage.setItem('cubeTimes', JSON.stringify(times));
+                        updateTimes();
+                        updateStats();
+                    }
+                }
+            });
+            
+            resetBtn.addEventListener('click', function() {
+                if (isRunning) {
+                    clearInterval(timerInterval);
+                    isRunning = false;
+                }
+                timer.className = 'timer';
+                timer.textContent = '0.000';
+                isReady = false;
+            });
+        });
+    </script>
+</body>
+</html>
